@@ -864,35 +864,33 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 36px;justify-content:space-bet
             <rect x="240" y="48"  width="34" height="12" fill="url(#hatchB)"/>
             <rect x="300" y="48"  width="34" height="12" fill="url(#hatchB)"/>
           </g>
-          <!-- read zone -->
-          <path d="M186 96 L 386 96 M196 166 L 380 166 M260 60 L 260 250 M315 60 L 315 250" stroke="rgba(255,157,77,.35)" stroke-width="1" stroke-dasharray="4 5"/>
-          <!-- truck -->
+          <!-- read field: stops above the truck so nothing crosses it -->
+          <path d="M188 97 H 386 M257 62 V 150 M317 62 V 150" stroke="rgba(255,157,77,.35)" stroke-width="1" stroke-dasharray="4 5"/>
+          <!-- truck (fully between the posts) -->
           <g stroke="#dde9f6" stroke-width="1.6" fill="none">
-            <rect x="208" y="160" width="150" height="78" rx="3"/>
-            <path d="M358 238 v-58 h44 l22 28 v30"/>
-            <circle cx="246" cy="254" r="14"/><circle cx="316" cy="254" r="14"/><circle cx="398" cy="254" r="14"/>
-            <circle cx="246" cy="254" r="5" stroke="#9fb3cb"/><circle cx="316" cy="254" r="5" stroke="#9fb3cb"/><circle cx="398" cy="254" r="5" stroke="#9fb3cb"/>
+            <rect x="184" y="160" width="150" height="78" rx="3"/>
+            <path d="M334 238 v-58 h44 l22 28 v30"/>
+            <rect x="342" y="188" width="24" height="18" rx="2" stroke-width="1.1" stroke="#9fb3cb"/>
+            <circle cx="222" cy="254" r="14"/><circle cx="292" cy="254" r="14"/><circle cx="374" cy="254" r="14"/>
+            <circle cx="222" cy="254" r="5" stroke="#9fb3cb"/><circle cx="292" cy="254" r="5" stroke="#9fb3cb"/><circle cx="374" cy="254" r="5" stroke="#9fb3cb"/>
           </g>
           <!-- crates on trailer -->
           <g stroke="#9fb3cb" stroke-width="1.1" fill="none">
-            <rect x="220" y="186" width="38" height="38"/><rect x="262" y="186" width="38" height="38"/><rect x="304" y="186" width="38" height="38"/>
-            <circle cx="239" cy="205" r="3.5" stroke="#ff9d4d"/><circle cx="281" cy="205" r="3.5" stroke="#ff9d4d"/><circle cx="323" cy="205" r="3.5" stroke="#ff9d4d"/>
+            <rect x="196" y="186" width="38" height="38"/><rect x="238" y="186" width="38" height="38"/><rect x="280" y="186" width="38" height="38"/>
+            <circle cx="215" cy="205" r="3.5" stroke="#ff9d4d"/><circle cx="257" cy="205" r="3.5" stroke="#ff9d4d"/><circle cx="299" cy="205" r="3.5" stroke="#ff9d4d"/>
           </g>
-          <!-- motion lines -->
-          <g stroke="#9fb3cb" stroke-width="1.2">
-            <line x1="160" y1="200" x2="196" y2="200"/><line x1="170" y1="216" x2="200" y2="216"/>
-          </g>
-          <!-- callouts -->
+          <!-- callout leaders (stop short of their text) -->
           <g stroke="#9fb3cb" stroke-width="1" fill="none" stroke-dasharray="3 4">
-            <path d="M413 70 h87"/>
-            <path d="M281 208 c0 60 80 70 165 72"/>
+            <path d="M406 97 H 430"/>
+            <path d="M134 97 H 148"/>
+            <path d="M299 212 C 305 252, 335 282, 404 292"/>
           </g>
           <g font-size="10" fill="#dde9f6" letter-spacing="1.2">
-            <text x="436" y="60">ANTENNAS READ</text>
-            <text x="436" y="74" fill="#9fb3cb">EVERY TAG ABOARD</text>
-            <text x="446" y="296">TAGGED CRATES</text>
-            <text x="26" y="60">DRIVE THROUGH —</text>
-            <text x="26" y="74" fill="#9fb3cb">NO STOPPING</text>
+            <text x="436" y="92">ANTENNAS READ</text>
+            <text x="436" y="106" fill="#9fb3cb">EVERY TAG ABOARD</text>
+            <text x="412" y="302">TAGGED CRATES</text>
+            <text x="26" y="92">DRIVE THROUGH —</text>
+            <text x="26" y="106" fill="#9fb3cb">NO STOPPING</text>
           </g>
         </svg>
         <div class="gbody">
