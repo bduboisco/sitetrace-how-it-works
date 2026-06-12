@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How SiteTrace Works — A Field Manual</title>
+<meta name="description" content="A plain-language guide to SiteTrace: how every part is tracked from the factory door to its final spot on site, and the small fleet of devices that makes it automatic.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f5f1e8;
+  --paper-2:#ede6d6;
+  --ink:#1c2433;
+  --ink-soft:#505a6e;
+  --line:rgba(28,36,51,.16);
+  --orange:#d54e0a;
+  --orange-text:#ad4106;
+  --orange-soft:#f4651f;
+  --green:#2e6b4f;
+  --red:#b8341f;
+  --bp:#0a1426;
+  --bp-deep:#040a15;
+  --bp-ink:#dde9f6;
+  --bp-soft:#9fb3cb;
+  --bp-line:rgba(221,233,246,.16);
+  --bp-accent:#ff9d4d;
+  --bp-cyan:#7fd1e8;
+  --display:"Big Shoulders Display","Arial Narrow",sans-serif;
+  --serif:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono","Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17.5px;
+  line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+/* paper grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:4;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+}
+::selection{background:var(--orange);color:#fff}
+img{display:block;max-width:100%;height:auto}
+a{color:inherit}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  display:flex;align-items:center;gap:28px;
+  padding:14px 28px;
+  background:rgba(245,241,232,.88);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.wordmark{
+  font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.04em;
+  text-transform:uppercase;text-decoration:none;display:flex;align-items:center;gap:10px;
+}
+.wordmark .tick{width:13px;height:13px;background:var(--orange);transform:rotate(45deg);flex:none}
+.topnav{display:flex;gap:4px;margin-left:auto;overflow-x:auto}
+.topnav a{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  text-decoration:none;color:var(--ink-soft);padding:7px 11px;border-radius:3px;white-space:nowrap;
+}
+.topnav a:hover{color:var(--ink);background:rgba(28,36,51,.06)}
+.topnav a.active{color:var(--orange-text);font-weight:600}
+
+/* ---------- shared layout ---------- */
+.wrap{max-width:1160px;margin:0 auto;padding:0 28px}
+section{padding:96px 0}
+.kicker{
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--orange-text);display:flex;align-items:center;gap:14px;
+}
+.kicker::before{content:"";width:34px;height:2px;background:var(--orange);flex:none}
+h2{
+  font-family:var(--display);font-weight:700;text-transform:uppercase;
+  font-size:clamp(38px,5.4vw,62px);line-height:.98;letter-spacing:.005em;margin:18px 0 22px;
+}
+.lede{font-size:clamp(18px,2vw,21px);max-width:62ch;color:var(--ink-soft)}
+.lede strong{color:var(--ink)}
+.prose{max-width:62ch}
+.prose p{margin:0 0 1.1em}
+.prose strong{font-weight:600}
+em{font-style:italic}
+
+/* mono caption under images */
+.figcap{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--ink-soft);
+  margin-top:14px;display:flex;gap:10px;align-items:baseline;
+}
+.figcap b{color:var(--orange-text);font-weight:600;flex:none}
+
+/* ---------- frames ---------- */
+.frame{
+  background:#fff;border:1px solid rgba(28,36,51,.22);border-radius:10px;overflow:hidden;
+  box-shadow:0 2px 6px rgba(28,36,51,.08),0 22px 48px -18px rgba(28,36,51,.3);
+}
+.frame .bar{
+  display:flex;align-items:center;gap:7px;padding:9px 13px;
+  background:#f1ede3;border-bottom:1px solid rgba(28,36,51,.14);
+}
+.frame .bar i{width:9px;height:9px;border-radius:50%;background:#cfc8b6}
+.frame .bar i:first-child{background:#e3a08c}
+.frame .url{
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);
+  background:#fff;border:1px solid rgba(28,36,51,.12);border-radius:99px;
+  padding:2px 13px;margin-left:8px;letter-spacing:.03em;
+}
+.phone{
+  background:#fff;border:2px solid var(--ink);border-radius:34px;overflow:hidden;
+  box-shadow:0 24px 50px -16px rgba(28,36,51,.4);width:min(300px,100%);
+}
+.phone .notch{height:24px;background:#fff;display:flex;justify-content:center;align-items:center}
+.phone .notch::after{content:"";width:72px;height:7px;border-radius:99px;background:#d8d2c4}
+
+/* stamps */
+.stamp{
+  position:absolute;z-index:3;
+  font-family:var(--mono);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--orange-text);border:2px solid currentColor;border-radius:5px;
+  padding:7px 13px;background:rgba(245,241,232,.92);
+  transform:rotate(-4deg);box-shadow:0 4px 14px rgba(28,36,51,.18);
+}
+.stamp.red{color:var(--red)}
+.stamp.green{color:var(--green);transform:rotate(3deg)}
+
+/* ---------- hero ---------- */
+.hero{
+  padding:170px 0 90px;position:relative;overflow:hidden;
+  background:
+    linear-gradient(rgba(28,36,51,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(28,36,51,.045) 1px,transparent 1px);
+  background-size:44px 44px;
+  border-bottom:1px solid var(--line);
+}
+.hero h1{
+  font-family:var(--display);font-weight:800;text-transform:uppercase;
+  font-size:clamp(58px,10.5vw,138px);line-height:.9;letter-spacing:.005em;
+  margin:22px 0 26px;
+}
+.hero h1 .o{color:var(--orange)}
+.hero .lede{max-width:56ch}
+.hero-meta{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:8px 26px;margin-bottom:8px;
+}
+.hero-meta span b{color:var(--orange-text);font-weight:600}
+.route{margin:64px 0 10px}
+.route svg{width:100%;height:auto;display:block}
+/* hero load animation */
+.hero .fade{opacity:0;transform:translateY(22px);animation:rise .9s cubic-bezier(.2,.7,.2,1) forwards}
+.hero .fade.d1{animation-delay:.08s}.hero .fade.d2{animation-delay:.2s}.hero .fade.d3{animation-delay:.34s}
+.hero .fade.d4{animation-delay:.5s}.hero .fade.d5{animation-delay:.66s}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ---------- problem cards ---------- */
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:54px}
+.pcard{
+  background:#fbf8f1;border:1px solid var(--line);border-radius:10px;padding:30px 28px 26px;
+  position:relative;
+}
+.pcard::before{
+  content:attr(data-n);position:absolute;top:-20px;left:22px;
+  font-family:var(--display);font-weight:800;font-size:44px;color:var(--orange);
+  background:var(--paper);padding:0 10px;line-height:1;
+}
+.pcard h3{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:25px;letter-spacing:.01em;margin:6px 0 12px}
+.pcard p{font-size:16px;color:var(--ink-soft)}
+.pcard .tag{
+  display:inline-block;margin-top:18px;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--red);
+  border:1.5px solid currentColor;border-radius:4px;padding:4px 9px;
+}
+.costline{
+  margin-top:54px;font-family:var(--display);font-weight:700;text-transform:uppercase;
+  font-size:clamp(24px,3.4vw,38px);line-height:1.1;
+  border-left:5px solid var(--orange);padding-left:24px;max-width:30ch;
+}
+
+/* ---------- big idea ---------- */
+#idea{background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.ledger-fig{margin:58px 0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ledger-fig svg{width:100%;min-width:880px;height:auto;display:block}
+.idea-cols{margin-top:48px}
+
+/* ---------- journey ---------- */
+.journey{position:relative;margin-top:70px;padding-left:74px}
+.journey::before{
+  content:"";position:absolute;left:25px;top:8px;bottom:8px;width:0;
+  border-left:2px dashed rgba(28,36,51,.3);
+}
+.step{position:relative;margin-bottom:96px}
+.step:last-child{margin-bottom:0}
+.step .pin{
+  position:absolute;left:-74px;top:-2px;width:52px;height:52px;border-radius:50%;
+  background:var(--paper);border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-weight:800;font-size:21px;
+}
+.step.bad .pin{border-color:var(--red);color:var(--red)}
+.step.good .pin{border-color:var(--green);color:var(--green)}
+.step h3{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:clamp(27px,3.4vw,38px);letter-spacing:.01em;margin-bottom:14px}
+.step .where{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--orange-text);margin-bottom:8px}
+.step .prose{margin-bottom:30px}
+.shot{position:relative;max-width:980px}
+.framewrap{position:relative}
+.shot .stamp{top:-16px;right:-10px}
+.shot .stamp.two{top:auto;bottom:10px;right:26px}
+.aside-note{
+  margin-top:26px;max-width:680px;background:#fbf8f1;border:1px dashed rgba(28,36,51,.35);
+  border-radius:8px;padding:18px 22px;font-size:15.5px;color:var(--ink-soft);
+}
+.aside-note b{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--green);display:block;margin-bottom:6px}
+
+/* ---------- control room ---------- */
+#control{background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.ctrl-grid{display:grid;grid-template-columns:1fr 320px;gap:48px;margin-top:54px;align-items:start}
+.legend{border-top:2px solid var(--ink);padding-top:6px}
+.legend li{
+  list-style:none;padding:16px 0;border-bottom:1px dashed var(--line);font-size:15.5px;color:var(--ink-soft);
+}
+.legend li b{display:block;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:4px}
+.legend li b i{color:var(--orange);font-style:normal}
+
+/* ---------- blueprint / gear ---------- */
+.blueprint{
+  background:
+    linear-gradient(var(--bp-line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--bp-line) 1px,transparent 1px),
+    linear-gradient(180deg,var(--bp) 0%,var(--bp-deep) 100%);
+  background-size:44px 44px,44px 44px,100% 100%;
+  color:var(--bp-ink);padding:110px 0 120px;
+}
+.blueprint .kicker{color:var(--bp-accent)}
+.blueprint .kicker::before{background:var(--bp-accent)}
+.blueprint .lede{color:var(--bp-soft)}
+.blueprint .lede strong{color:var(--bp-ink)}
+.titleblock{
+  margin-top:46px;border:1.5px solid rgba(221,233,246,.45);display:grid;
+  grid-template-columns:repeat(4,auto);width:max-content;max-width:100%;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+}
+.titleblock div{padding:9px 18px;border-right:1px solid rgba(221,233,246,.3)}
+.titleblock div:last-child{border-right:0}
+.titleblock b{display:block;color:var(--bp-soft);font-weight:400;font-size:9px;margin-bottom:3px}
+.gear-grid{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:64px}
+.gear{
+  border:1.5px solid rgba(221,233,246,.4);border-radius:6px;background:rgba(4,9,18,.6);
+  display:flex;flex-direction:column;
+}
+.gear .ghead{
+  display:flex;align-items:baseline;gap:14px;padding:16px 22px;
+  border-bottom:1px solid rgba(221,233,246,.25);
+}
+.gear .ghead .gno{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--bp-accent)}
+.gear .ghead h3{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:24px;letter-spacing:.02em;color:var(--bp-ink)}
+.gear .ghead .gqty{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bp-soft);white-space:nowrap}
+.gear svg{width:100%;height:auto;display:block}
+.gear .gbody{padding:6px 24px 24px;font-size:15.5px;color:var(--bp-soft);line-height:1.62}
+.gear .gbody strong{color:var(--bp-ink);font-weight:600}
+.gear .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.gear .chips span{
+  font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  border:1px solid rgba(221,233,246,.35);border-radius:99px;padding:4px 11px;color:var(--bp-ink);
+}
+.gear .buy{
+  margin-top:18px;padding-top:14px;border-top:1px dashed rgba(221,233,246,.3);
+  font-family:var(--mono);font-size:11px;letter-spacing:.04em;line-height:2;
+}
+.gear .buy b{display:block;font-size:9.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--bp-accent);margin-bottom:4px}
+.gear .buy a{color:var(--bp-cyan);text-decoration:underline;text-decoration-color:rgba(127,209,232,.45);text-underline-offset:3px}
+.gear .buy a:hover{color:#fff}
+.gear .buy span{color:var(--bp-soft)}
+.bom{margin-top:64px;border:1.5px solid rgba(221,233,246,.4);border-radius:6px;background:rgba(4,9,18,.6);overflow:hidden}
+.bom .bhead{padding:18px 26px;border-bottom:1px solid rgba(221,233,246,.25);display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.bom .bhead h3{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:26px}
+.bom .bhead span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bp-soft);margin-left:auto}
+.bom table{width:100%;border-collapse:collapse;font-size:14px}
+.bom th{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--bp-soft);text-align:left;padding:12px 26px;border-bottom:1px solid rgba(221,233,246,.25)}
+.bom td{padding:12px 26px;border-bottom:1px solid rgba(221,233,246,.12);color:var(--bp-soft);vertical-align:top}
+.bom td:first-child{color:var(--bp-ink);font-weight:600}
+.bom td.r{font-family:var(--mono);font-size:12.5px;color:var(--bp-cyan);white-space:nowrap}
+.bom tr.total td{border-top:2px solid rgba(221,233,246,.45);border-bottom:0;color:var(--bp-ink);font-weight:600}
+.bom tr.total td.r{color:var(--bp-accent);font-size:13.5px}
+.roi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:26px;margin-top:34px}
+.roi article{border:1px dashed rgba(221,233,246,.35);border-radius:6px;padding:22px 24px}
+.roi h4{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--bp-accent);margin-bottom:10px}
+.roi p{font-size:14.5px;color:var(--bp-soft);line-height:1.6}
+.roi p strong{color:var(--bp-ink)}
+.bp-note{margin-top:30px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--bp-soft)}
+
+/* ---------- people ---------- */
+.people-grid{display:grid;grid-template-columns:1fr auto auto;gap:54px;margin-top:60px;align-items:start}
+.people-grid .prose{padding-top:8px}
+.phone-cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);text-align:center;margin-top:14px}
+.quiet-quote{
+  margin-top:64px;border-left:5px solid var(--orange);padding-left:26px;
+  font-family:var(--display);font-weight:700;text-transform:uppercase;
+  font-size:clamp(23px,3vw,34px);line-height:1.12;max-width:34ch;
+}
+
+/* ---------- run it ---------- */
+#run .runbox{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;margin-top:54px;align-items:start}
+.term{
+  background:var(--ink);color:#e8e4d8;border-radius:10px;overflow:hidden;
+  box-shadow:0 24px 48px -16px rgba(28,36,51,.45);
+  font-family:var(--mono);font-size:14px;
+}
+.term .bar{display:flex;gap:7px;padding:11px 14px;background:rgba(255,255,255,.07)}
+.term .bar i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25)}
+.term pre{padding:22px 24px 26px;line-height:1.9;overflow-x:auto}
+.term .c{color:#8d97ab}
+.term .o{color:var(--orange-soft)}
+.logins{border-top:2px solid var(--ink)}
+.logins li{list-style:none;display:grid;grid-template-columns:150px 1fr;gap:18px;padding:13px 0;border-bottom:1px dashed var(--line);font-size:15px;color:var(--ink-soft)}
+.logins li code{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-weight:500}
+.logins+.pw{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:14px}
+.logins+.pw b{color:var(--orange-text)}
+
+/* ---------- footer ---------- */
+footer{
+  border-top:1px solid var(--line);padding:34px 0 44px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 36px;justify-content:space-between}
+
+/* ---------- reveal on scroll ---------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .reveal,.hero .fade{opacity:1!important;transform:none!important;animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .cards3{grid-template-columns:1fr}
+  .pcard{margin-top:14px}
+  .ctrl-grid,#run .runbox,.roi{grid-template-columns:1fr}
+  .gear-grid{grid-template-columns:1fr}
+  .people-grid{grid-template-columns:1fr 1fr;gap:30px}
+  .people-grid .prose{grid-column:1/-1}
+  .statline{grid-template-columns:1fr 1fr}
+  .stat{padding:18px 18px 4px}
+  .stat:nth-child(odd){border-left:0;padding-left:0}
+}
+@media (max-width:620px){
+  section{padding:70px 0}
+  .hero{padding:130px 0 70px}
+  .journey{padding-left:0}
+  .journey::before{left:-9999px}
+  .step .pin{position:static;margin-bottom:14px}
+  .people-grid{grid-template-columns:1fr}
+  .phone{margin:0 auto}
+  .stamp{font-size:10px;padding:5px 9px}
+  .topnav{display:none}
+  .gear .ghead{flex-wrap:wrap;gap:6px 14px}
+  .gear .ghead .gqty{margin-left:0;width:100%;white-space:normal}
+  .bom td.r{white-space:normal}
+  .bom th,.bom td{padding:10px 14px}
+  .titleblock{grid-template-columns:1fr 1fr}
+  .titleblock div{border-right:0;border-bottom:1px solid rgba(221,233,246,.3)}
+}
+@media print{
+  .topbar{position:static}
+  body::before{display:none}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+<noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="wordmark" href="#top"><span class="tick"></span>SiteTrace</a>
+  <nav class="topnav">
+    <a href="#problem">The Problem</a>
+    <a href="#idea">One Ledger</a>
+    <a href="#journey">Follow a Shipment</a>
+    <a href="#schedule">The Schedule</a>
+    <a href="#control">Control Room</a>
+    <a href="#gear">The Gear</a>
+    <a href="#fleet">Fleet Health</a>
+    <a href="#people">The People</a>
+    <a href="#run">See It Run</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-meta fade d1">
+      <span>Field Manual <b>·</b> How It Works</span>
+      <span>Rev 1.1</span>
+      <span>Site: Granite Ridge DC&#8209;1</span>
+      <span>All screens: live application, simulated data</span>
+    </div>
+    <h1 class="fade d2">Every part.<br>Every mile.<br><span class="o">Every minute.</span></h1>
+    <p class="lede fade d3">SiteTrace watches every server, switchgear cabinet, and steel beam on its way to your
+    data center build — from the factory door, across the ocean, through your gate, to its final spot on site.
+    It notices trouble <strong>while there is still time to do something about it.</strong></p>
+
+    <div class="route fade d4" aria-hidden="true">
+      <svg viewBox="0 0 1100 130" xmlns="http://www.w3.org/2000/svg">
+        <path id="routePath" d="M30 78 C 160 18, 250 18, 330 70 S 520 120, 620 70 S 800 20, 880 60 S 1020 95, 1070 70"
+              fill="none" stroke="#1c2433" stroke-width="2" stroke-dasharray="7 8" opacity=".55"/>
+        <g font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#505a6e" text-anchor="middle" letter-spacing="1.5">
+          <circle cx="30" cy="78" r="6" fill="#f5f1e8" stroke="#1c2433" stroke-width="2"/>
+          <text x="34" y="108">FACTORY</text>
+          <circle cx="330" cy="70" r="6" fill="#f5f1e8" stroke="#1c2433" stroke-width="2"/>
+          <text x="330" y="40">OCEAN</text>
+          <circle cx="620" cy="70" r="7" fill="#d54e0a" stroke="#d54e0a"/>
+          <text x="620" y="108" fill="#d54e0a" font-weight="600">PORT — 9.2 G SHOCK</text>
+          <circle cx="880" cy="60" r="6" fill="#f5f1e8" stroke="#1c2433" stroke-width="2"/>
+          <text x="880" y="32">SITE GATE</text>
+          <circle cx="1070" cy="70" r="6" fill="#f5f1e8" stroke="#2e6b4f" stroke-width="2"/>
+          <text x="1058" y="103" fill="#2e6b4f">RACK</text>
+        </g>
+        <circle r="5" fill="#d54e0a">
+          <animateMotion dur="11s" repeatCount="indefinite" rotate="0">
+            <mpath href="#routePath"/>
+          </animateMotion>
+        </circle>
+      </svg>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= PROBLEM ================= -->
+<section id="problem">
+  <div class="wrap reveal">
+    <p class="kicker">Section 01 — Why this exists</p>
+    <h2>Late costs money.<br>Lost causes late.</h2>
+    <p class="lede">Data center construction runs on a brutal clock. Every late week costs real money —
+    idle crews, pushed-back commissioning, delayed go-live. And almost every late week starts the same way:
+    <strong>material that isn’t where the schedule needs it to be.</strong> Three blind spots cause most of it:</p>
+
+    <div class="cards3">
+      <article class="pcard reveal" data-n="1">
+        <h3>“Where’s my shipment?”</h3>
+        <p>Your parts cross oceans in other people’s ships and ride in other people’s trucks. Each carrier sees
+        its own little piece. Nobody — until now — could see all of it on one screen, or which delay actually
+        threatens the schedule.</p>
+        <span class="tag">Blind spot № 1 — In transit</span>
+      </article>
+      <article class="pcard reveal" data-n="2">
+        <h3>“It arrived broken. Nobody knew.”</h3>
+        <p>A server can be shaken to death inside a sealed crate and look perfect from the outside. Traditionally
+        you discover that at installation — weeks later — when nobody can prove who dropped it or when.</p>
+        <span class="tag">Blind spot № 2 — Damage</span>
+      </article>
+      <article class="pcard reveal" data-n="3">
+        <h3>“It’s here… somewhere.”</h3>
+        <p>A construction yard is a small city of identical crates. Things get put down in the wrong place and
+        vanish on your own property. Crews burn hours hunting for parts the company already owns — or re-order them.</p>
+        <span class="tag">Blind spot № 3 — On site</span>
+      </article>
+    </div>
+
+    <p class="costline reveal">SiteTrace closes all three gaps with one system — and mostly without people typing anything.</p>
+  </div>
+</section>
+
+<!-- ================= BIG IDEA ================= -->
+<section id="idea">
+  <div class="wrap reveal">
+    <p class="kicker">Section 02 — The big idea</p>
+    <h2>Everything is a sighting.</h2>
+    <p class="lede">Every device in the system — the gate reader, the tracker riding on a pallet, a worker’s phone —
+    produces the exact same small record: <strong>what</strong> was seen, <strong>where</strong>, <strong>when</strong>,
+    <strong>how</strong> it was seen, and <strong>how sure we are</strong>. Every sighting flows into one ledger,
+    in order, forever. Nothing is ever edited or erased.</p>
+
+    <div class="ledger-fig reveal" aria-hidden="true">
+      <svg viewBox="0 0 1100 332" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono,monospace">
+        <defs>
+          <marker id="mArr" viewBox="0 0 8 8" refX="6.5" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto">
+            <path d="M0 0 L8 4 L0 8 z" fill="#5b6478"/>
+          </marker>
+        </defs>
+        <!-- sources -->
+        <g stroke="#1c2433" fill="#fbf8f1" stroke-width="1.5">
+          <rect x="20" y="25"  width="235" height="70" rx="6"/>
+          <rect x="20" y="130" width="235" height="70" rx="6"/>
+          <rect x="20" y="235" width="235" height="70" rx="6"/>
+        </g>
+        <g font-size="12" fill="#1c2433" font-weight="600" letter-spacing="1">
+          <text x="66" y="57">GATE PORTAL</text>
+          <text x="66" y="162">PALLET TRACKER</text>
+          <text x="66" y="267">STAFF PHONE</text>
+        </g>
+        <g font-size="10" fill="#505a6e" letter-spacing="1">
+          <text x="66" y="75">READS THE WHOLE TRUCK</text>
+          <text x="66" y="180">PINGS FROM THE ROAD &amp; YARD</text>
+          <text x="66" y="285">QR SCAN — THE FALLBACK</text>
+        </g>
+        <!-- source icons -->
+        <g stroke="#d54e0a" stroke-width="1.6" fill="none">
+          <path d="M37 74 v-26 h16 v26 M37 60 h16"/>
+          <rect x="36" y="159" width="17" height="12" rx="2"/><path d="M44.5 159 v-6"/>
+          <rect x="38" y="258" width="13" height="24" rx="3"/>
+        </g>
+        <!-- converge arrows -->
+        <g stroke="#1c2433" stroke-width="1.5" fill="none" stroke-dasharray="5 5" opacity=".55" marker-end="url(#mArr)">
+          <path d="M255 60 C 330 60, 348 138, 416 146"/>
+          <path d="M255 165 C 320 165, 350 167, 416 167"/>
+          <path d="M255 270 C 330 270, 348 196, 416 188"/>
+        </g>
+        <!-- ledger -->
+        <rect x="425" y="95" width="260" height="145" rx="8" fill="#1c2433"/>
+        <g font-size="13" fill="#f5f1e8" font-weight="600" letter-spacing="1.5" text-anchor="middle">
+          <text x="555" y="131">THE LEDGER</text>
+        </g>
+        <g font-size="10" fill="#b8c0d0" letter-spacing="1" text-anchor="middle">
+          <text x="555" y="157">EVERY SIGHTING · IN ORDER</text>
+          <text x="555" y="175">APPEND-ONLY · NEVER ERASED</text>
+        </g>
+        <line x1="449" y1="191" x2="661" y2="191" stroke="#f5f1e8" stroke-width="1" stroke-dasharray="3 4" opacity=".3"/>
+        <g font-size="9" fill="#f4651f" letter-spacing=".8" text-anchor="middle">
+          <text x="555" y="214">WHAT · WHERE · WHEN · HOW · HOW SURE</text>
+        </g>
+        <!-- out arrows -->
+        <g stroke="#1c2433" stroke-width="1.5" fill="none" stroke-dasharray="5 5" opacity=".55" marker-end="url(#mArr)">
+          <path d="M685 135 C 745 110, 758 70, 821 54"/>
+          <path d="M685 156 C 745 147, 758 134, 821 130"/>
+          <path d="M685 179 C 745 188, 758 201, 821 205"/>
+          <path d="M685 200 C 745 225, 758 264, 821 280"/>
+        </g>
+        <!-- outputs -->
+        <g stroke="#d54e0a" fill="#fbf8f1" stroke-width="1.5">
+          <rect x="830" y="27"  width="250" height="52" rx="26"/>
+          <rect x="830" y="103" width="250" height="52" rx="26"/>
+          <rect x="830" y="179" width="250" height="52" rx="26"/>
+          <rect x="830" y="255" width="250" height="52" rx="26"/>
+        </g>
+        <g font-size="11" fill="#1c2433" font-weight="600" letter-spacing="1" text-anchor="middle">
+          <text x="955" y="57">LIVE WORLD MAP</text>
+          <text x="955" y="133">DAMAGE ALARMS</text>
+          <text x="955" y="209">LIVE YARD MAP</text>
+          <text x="955" y="285">SCHEDULE RISK</text>
+        </g>
+      </svg>
+    </div>
+    <p class="figcap"><b>Fig. 02-A</b> <span>Three kinds of eyes, one memory. No feature ever asks <em>which device</em> saw an item — only <em>how sure</em> the sighting was.</span></p>
+
+    <div class="idea-cols">
+      <div class="prose reveal">
+        <p><strong>Why one ledger matters:</strong> because the value is in the connections. A hard jolt recorded at
+        sea automatically forces an inspection at your gate. A ship running late automatically rolls up as schedule
+        risk against the build plan. A pallet that stops being seen automatically becomes a task
+        for a human to go look.</p>
+        <p>And because the ledger is append-only, it doubles as evidence. When you file a damage claim against a
+        carrier, you attach the actual jolt — measured in G-force, timestamped, located on the map — not an argument.
+        When a sighting is uncertain, SiteTrace doesn’t guess: it opens a small task asking a person to confirm
+        with a 10-second phone scan.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= JOURNEY ================= -->
+<section id="journey">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">Section 03 — Follow one shipment</p>
+      <h2>The story of SHP&#8209;0042</h2>
+      <p class="lede">Sixteen servers leave a factory in Shenzhen, headed for server row A1–A4 at Granite Ridge.
+      Here is exactly what SiteTrace does at every step.</p>
+      <div class="aside-note" style="margin-top:28px"><b>Before we begin — about this data</b>
+      <strong style="color:var(--red)">SHP-0042 is a demonstration scenario.</strong> The vendors, ships, and sensors are simulated; no real freight was
+      harmed. But everything you see is the <em>real SiteTrace application</em> doing real work — every screenshot
+      below is the live system processing that mock shipment exactly as it would a real one.</div>
+    </div>
+
+    <div class="journey">
+
+      <article class="step reveal">
+        <span class="pin">01</span>
+        <p class="where">Shenzhen — vendor’s loading dock</p>
+        <h3>Tagged before it ships</h3>
+        <div class="prose"><p>The vendor sticks a <strong>smart label</strong> on every server — a radio tag with a
+        printed QR code, the item’s fingerprint. A reusable <strong>condition tracker</strong> rides with the crated load:
+        a palm-sized box that reports its position and how gently (or roughly) it’s being handled, every few minutes,
+        over the cellular network. The vendor also sends an electronic packing list, so the site knows exactly
+        what’s coming before it arrives.</p></div>
+      </article>
+
+      <article class="step reveal">
+        <span class="pin">02</span>
+        <p class="where">Pacific Ocean — aboard Evergreen Ocean</p>
+        <h3>On the water, on the map</h3>
+        <div class="prose"><p>Every shipment in flight is a dot on one world map — ocean, air, and road together.
+        Each dot carries a live arrival estimate, and when a vessel slips or customs holds a container, the dot
+        turns amber and the delay flows straight into the build schedule (more on that in the next section).</p></div>
+        <figure class="shot">
+          <span class="stamp">25 shipments on map</span>
+          <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / world map</span></div>
+          <img src="assets/world-map.png" width="1440" height="900" loading="lazy" alt="SiteTrace world map showing in-transit, exception and delivered shipments across the globe"></div>
+          <figcaption class="figcap"><b>Fig. 03-A</b> The world map. Blue: moving as planned. Amber: something needs attention. Green: delivered.</figcaption>
+        </figure>
+      </article>
+
+      <article class="step bad reveal">
+        <span class="pin">03</span>
+        <p class="where">Port of Los Angeles — crane transfer</p>
+        <h3>The drop</h3>
+        <div class="prose"><p>During the transfer to a drayage truck, the pallet takes a <strong>9.2&nbsp;G jolt</strong> —
+        nearly twice what a server is built to survive (the alarm threshold for servers is 5&nbsp;G). The tracker felt it
+        and phoned home within minutes.</p>
+        <p>Here’s the part that usually takes lawyers: <em>whose hands was it in?</em> SiteTrace already knows. The
+        tracker’s GPS trail shows the pallet had left the ship and crossed into the drayage company’s custody zone.
+        The damage event is automatically pinned to <strong>PacWest Drayage</strong> — no one had to log a handoff.</p></div>
+        <figure class="shot">
+          <span class="stamp red">9.2 G — limit 5 G</span>
+          <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / damage events</span></div>
+          <img src="assets/damage.png" width="1440" height="900" loading="lazy" alt="Damage events screen showing PLT-00075 with a 9.2 G shock against a 5 G threshold, custodian PacWest Drayage"></div>
+          <figcaption class="figcap"><b>Fig. 03-B</b> The damage queue. Peak force vs. the limit for that class of equipment, and who had custody when it happened.</figcaption>
+        </figure>
+      </article>
+
+      <article class="step bad reveal">
+        <span class="pin">04</span>
+        <p class="where">Still at sea level — seconds later</p>
+        <h3>One jolt, sixteen flags</h3>
+        <div class="prose"><p>SiteTrace knows what was packed in that load, because packing was recorded as an
+        event too. So the single jolt automatically <strong>flags all 16 servers</strong> travelling with it.
+        Each one is now “damage-hold”: it must pass a physical inspection before the site will accept it.
+        The project team gets the alert the same minute — days before the truck reaches the site, not weeks
+        after installation.</p></div>
+        <figure class="shot">
+          <span class="stamp red">16 servers flagged</span>
+          <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / shipments / SHP-0042</span></div>
+          <img src="assets/shipment-detail.png" width="1440" height="900" loading="lazy" alt="Shipment SHP-0042 detail with leg-by-leg custody timeline, route map and a list of propagated damage events"></div>
+          <figcaption class="figcap"><b>Fig. 03-C</b> The shipment’s life story: every leg, every custody change, and the damage events stacked on the right.</figcaption>
+        </figure>
+      </article>
+
+      <article class="step good reveal">
+        <span class="pin">05</span>
+        <p class="where">Granite Ridge — main gate</p>
+        <h3>Received at driving speed</h3>
+        <div class="prose"><p>The truck rolls through the gate without stopping. The <strong>RFID portal</strong> over
+        the entrance reads every smart label aboard in one pass and checks the load against the vendor’s packing
+        list. No clipboard, no unloading-and-counting.</p>
+        <p>One server doesn’t read — radio waves and dense metal don’t always cooperate, and SiteTrace
+        <em>expects</em> that. Since the server was packed in a crate that <em>did</em> read, it’s marked
+        “almost certainly here” and a 10-second verification task is queued for a human. Discrepancies open tasks;
+        they never block the truck.</p></div>
+        <figure class="shot">
+          <div class="framewrap">
+          <span class="stamp green">Received — gate portal</span>
+          <span class="stamp two">1 missed read → task</span>
+          <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / exceptions</span></div>
+          <img src="assets/exceptions-desktop.png" width="1440" height="900" loading="lazy" alt="Exceptions queue with verification tasks, each showing the reason, confidence and a resolve button"></div>
+          </div>
+          <figcaption class="figcap"><b>Fig. 03-D</b> The exception queue. Every educated guess the system makes becomes a small reviewable task — with its confidence shown.</figcaption>
+        </figure>
+      </article>
+
+      <article class="step reveal">
+        <span class="pin">06</span>
+        <p class="where">Laydown Yard A</p>
+        <h3>It files itself on the yard map</h3>
+        <div class="prose"><p>A forklift sets the pallet down in Laydown Yard A. Nobody types anything: the tracker
+        keeps pinging from the pallet, the ping lands inside the yard zone drawn on the site map, and the placement
+        is recorded automatically. From now on, anyone can search a serial number and get a zone — plus the item’s
+        complete location history on the property.</p></div>
+        <figure class="shot">
+          <span class="stamp">Placed — Laydown Yard A</span>
+          <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / site map</span></div>
+          <img src="assets/site-map.png" width="1440" height="900" loading="lazy" alt="Interactive site map of Granite Ridge Campus with colored zones, asset counts and dwell warnings"></div>
+          <figcaption class="figcap"><b>Fig. 03-E</b> The living yard map: 844 assets across 10 zones, with warnings where sensitive gear sits too long in the open.</figcaption>
+        </figure>
+      </article>
+
+      <article class="step bad reveal">
+        <span class="pin">07</span>
+        <p class="where">Receiving apron — inspection bay</p>
+        <h3>The check-up, with receipts</h3>
+        <div class="prose"><p>The sixteen flagged servers can’t be accepted until someone looks at them. Each
+        inspection is a guided pass/fail with notes and photos. Fifteen pass. One doesn’t — and a
+        <strong>claim opens against PacWest Drayage automatically</strong>, with the 9.2&nbsp;G reading, the timestamp,
+        and the GPS location already attached. The argument about “who broke it” is over before it starts.</p></div>
+        <figure class="shot">
+          <span class="stamp red">1 failed → claim opened</span>
+          <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / inspections</span></div>
+          <img src="assets/inspections.png" width="1440" height="900" loading="lazy" alt="Inspections queue listing flagged servers from SHP-0042, each showing the recorded shock and an Inspect button"></div>
+          <figcaption class="figcap"><b>Fig. 03-F</b> Damage-hold items waiting for a physical check. The recorded jolt rides along as evidence.</figcaption>
+        </figure>
+        <div class="aside-note"><b>The happy ending</b>
+        A yard worker gets the verification task from step 05, walks to the crate, scans the missed server’s QR code
+        with a phone — and the exception clears itself. Fifteen healthy servers head to the rack;
+        the sixteenth is already being replaced on the carrier’s dime. And the build schedule knew about all of it
+        from the moment of the jolt — that’s the next section.</div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= SCHEDULE ================= -->
+<section id="schedule">
+  <div class="wrap reveal">
+    <p class="kicker">Section 04 — The build schedule</p>
+    <h2>Every crate knows<br>its deadline.</h2>
+    <p class="lede">The schedule screen is where logistics meets construction. Every build activity —
+    “Erect Mezzanine Steel,” “Install Server Row A1–A4,” “Energize Switchgear Lineup A” — carries a
+    <strong>need-by date</strong>, and every tracked part is linked to the activity waiting on it.</p>
+
+    <div class="ctrl-grid">
+      <figure class="shot reveal">
+        <span class="stamp red">Float −2 days</span>
+        <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / schedule</span></div>
+        <img src="assets/schedule.png" width="1440" height="900" loading="lazy" alt="Schedule screen listing build activities with status, critical-path stars, need-by dates, linked item counts and worst float per activity"></div>
+        <figcaption class="figcap"><b>Fig. 04-A</b> <span>The build plan, live. Stars mark the critical path; the float column shows each activity’s days of slack — green means breathing room, red means trouble.</span></figcaption>
+      </figure>
+      <ul class="legend reveal">
+        <li><b><i>—</i> Need-by date</b>The day the material must be on site for the crew. Everything is measured against it.</li>
+        <li><b><i>—</i> Float</b>Days of slack between when a part will arrive and when it’s needed. “Install Server Row A1–A4” is showing <strong>−2 days</strong> — the troubled servers from Section 03 put it behind. Caught this early, it’s a recoverable problem.</li>
+        <li><b><i>—</i> Critical path</b>Starred activities have zero room: if they slip, the whole project slips. SiteTrace watches their materials hardest.</li>
+        <li><b><i>—</i> What-if</b>Before committing to a change, ask: <em>“if this shipment slips ten days, which activities move?”</em> The answer comes back in seconds, not in a planning meeting.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTROL ROOM ================= -->
+<section id="control">
+  <div class="wrap reveal">
+    <p class="kicker">Section 05 — The control room</p>
+    <h2>One screen to start the day</h2>
+    <p class="lede">Everything in the story above rolls up here. A coordinator’s morning begins with a handful of
+    numbers and a “needs attention” list — not with phone calls.</p>
+
+    <div class="ctrl-grid">
+      <figure class="shot reveal">
+        <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / dashboard</span></div>
+        <img src="assets/dashboard.png" width="1440" height="900" loading="lazy" alt="SiteTrace dashboard with KPI tiles, a needs-attention list, live activity feed and shipments-by-status chart"></div>
+      </figure>
+      <ul class="legend reveal">
+        <li><b><i>—</i> Shipments in transit</b>Five on the move; two waving a flag (customs hold, weather delay).</li>
+        <li><b><i>—</i> Open exceptions</b>The system’s to-do list for humans: 28 small judgment calls, sorted by severity.</li>
+        <li><b><i>—</i> Damage &amp; inspections</b>Three open damage events; the queue of check-ups they triggered.</li>
+        <li><b><i>—</i> Needs attention</b>The short list a human should read first — shocks, silent trackers, missing items — newest and worst on top.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GEAR / BLUEPRINT ================= -->
+<section id="gear" class="blueprint">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">Section 06 — The gear</p>
+      <h2 style="color:var(--bp-ink)">The entire fleet:<br>two devices you buy,<br>one you already own.</h2>
+      <p class="lede">No exotic hardware. The design rule was <strong>deliberate minimalism</strong> — the fewest
+      device types that close all three blind spots. Fewer devices means fewer batteries, fewer failure points,
+      and less to train.</p>
+      <div class="titleblock" aria-hidden="true">
+        <div><b>DWG №</b>ST-EQ-01</div>
+        <div><b>Title</b>Capture fleet — general arrangement</div>
+        <div><b>Scale</b>NTS</div>
+        <div><b>Rev</b>1.1 — confirmed 2026-06-12</div>
+      </div>
+    </div>
+
+    <div class="gear-grid">
+
+      <!-- A: tracker -->
+      <article class="gear reveal">
+        <div class="ghead"><span class="gno">ITEM A</span><h3>Cellular condition tracker</h3><span class="gqty">Reusable · pallet/crate level</span></div>
+        <svg viewBox="0 0 560 330" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono,monospace" role="img" aria-label="Technical drawing of a cellular condition tracker with callouts for GPS, shock sensing, light, temperature and battery">
+          <defs>
+            <pattern id="hatchA" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="7" stroke="rgba(221,233,246,.25)" stroke-width="1"/>
+            </pattern>
+            <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L8 4 L0 8 z" fill="#9fb3cb"/>
+            </marker>
+          </defs>
+          <!-- body -->
+          <g stroke="#dde9f6" stroke-width="1.6" fill="none">
+            <rect x="185" y="105" width="190" height="120" rx="14"/>
+            <rect x="199" y="119" width="162" height="92" rx="8" stroke-dasharray="3 4" stroke-width="1"/>
+            <!-- antenna bump -->
+            <path d="M255 105 v-14 a10 10 0 0 1 10 -10 h30 a10 10 0 0 1 10 10 v14"/>
+            <!-- signal arcs -->
+            <path d="M288 64 a22 22 0 0 1 24 0" stroke="#ff9d4d"/>
+            <path d="M281 50 a34 34 0 0 1 38 0" stroke="#ff9d4d"/>
+            <path d="M274 36 a46 46 0 0 1 52 0" stroke="#ff9d4d"/>
+          </g>
+          <!-- screws -->
+          <g stroke="#9fb3cb" stroke-width="1.1" fill="none">
+            <circle cx="201" cy="121" r="4.5"/><path d="M198 118 l6 6 M204 118 l-6 6"/>
+            <circle cx="359" cy="121" r="4.5"/><path d="M356 118 l6 6 M362 118 l-6 6"/>
+            <circle cx="201" cy="209" r="4.5"/><path d="M198 206 l6 6 M204 206 l-6 6"/>
+            <circle cx="359" cy="209" r="4.5"/><path d="M356 206 l6 6 M362 206 l-6 6"/>
+          </g>
+          <!-- LED + label -->
+          <circle cx="222" cy="165" r="5" fill="#ff9d4d"/>
+          <rect x="244" y="152" width="96" height="26" fill="url(#hatchA)" stroke="#dde9f6" stroke-width="1"/>
+          <text x="252" y="169" font-size="11" fill="#dde9f6" letter-spacing="1.5">TRK-0042</text>
+          <!-- dimension line -->
+          <g stroke="#9fb3cb" stroke-width="1">
+            <line x1="185" y1="252" x2="375" y2="252" marker-start="url(#arr)" marker-end="url(#arr)"/>
+            <line x1="185" y1="232" x2="185" y2="258" stroke-dasharray="2 3"/>
+            <line x1="375" y1="232" x2="375" y2="258" stroke-dasharray="2 3"/>
+          </g>
+          <text x="248" y="270" font-size="10" fill="#9fb3cb" letter-spacing="1.5">PALM-SIZED · ≈128 MM</text>
+          <!-- callouts -->
+          <g stroke="#9fb3cb" stroke-width="1" fill="none">
+            <path d="M300 30 h110" stroke-dasharray="3 4"/>
+            <path d="M375 140 h55" stroke-dasharray="3 4"/>
+            <path d="M222 170 c-40 40 -90 40 -150 44" stroke-dasharray="3 4"/>
+            <path d="M185 130 h-60" stroke-dasharray="3 4"/>
+          </g>
+          <g font-size="10" fill="#dde9f6" letter-spacing="1.2">
+            <text x="552" y="26" text-anchor="end">CELLULAR — PHONES HOME</text>
+            <text x="552" y="40" text-anchor="end" fill="#9fb3cb">EVERY FEW MINUTES</text>
+            <text x="552" y="136" text-anchor="end">GPS + SHOCK + TILT</text>
+            <text x="552" y="150" text-anchor="end" fill="#9fb3cb">TEMP · HUMIDITY</text>
+            <text x="16" y="206">LIGHT SENSOR</text>
+            <text x="16" y="220" fill="#9fb3cb">KNOWS IF THE CRATE OPENED</text>
+            <text x="16" y="120">RECHARGEABLE</text>
+            <text x="16" y="134" fill="#9fb3cb">BACK TO THE POOL</text>
+          </g>
+        </svg>
+        <div class="gbody">
+          <p>The workhorse. One rides on every tracked pallet, crate, and big crated asset (generators, PDUs,
+          chillers). It answers four questions at once: <strong>where is it, how is it being treated, has anyone
+          opened it, and is it still where we put it?</strong> When freight arrives, the tracker comes off, goes back
+          in the charging pool, and ships out on the next pallet.</p>
+          <div class="chips"><span>In-transit GPS &amp; ETA</span><span>Shock / damage detection</span><span>Custody inference</span><span>Yard position</span><span>Reusable pool</span></div>
+          <p class="buy"><b>Where to buy</b>
+            <a href="https://silentrac.com/product-category/4g-5g-trackers/" target="_blank" rel="noopener">Tive Solo Pro (multi-use) — $190</a> <span>· SilenTrac, authorized reseller</span><br>
+            <a href="https://files.sourcewell.org/public/Shared%20Documents/Solicitations/General/020221-10351/020221-SAM/Additional%20Documents/020221-SAM%20-%20Pricing%20Information.pdf" target="_blank" rel="noopener">Samsara AG46 — $99 + $10/mo incl. cellular</a> <span>· Sourcewell list pricing · location only, no shock sensing</span>
+          </p>
+        </div>
+      </article>
+
+      <!-- B: gate portal -->
+      <article class="gear reveal">
+        <div class="ghead"><span class="gno">ITEM B</span><h3>RFID gate portal</h3><span class="gqty">Fixed · one per site gate</span></div>
+        <svg viewBox="0 0 560 330" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono,monospace" role="img" aria-label="Technical drawing of an RFID gate portal reading a truck driving through">
+          <defs>
+            <pattern id="hatchB" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="7" stroke="rgba(255,157,77,.5)" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <!-- ground -->
+          <line x1="20" y1="272" x2="540" y2="272" stroke="#dde9f6" stroke-width="1.6"/>
+          <g stroke="#9fb3cb" stroke-width="1">
+            <line x1="40" y1="282" x2="60" y2="272"/><line x1="90" y1="282" x2="110" y2="272"/>
+            <line x1="140" y1="282" x2="160" y2="272"/><line x1="190" y1="282" x2="210" y2="272"/>
+            <line x1="240" y1="282" x2="260" y2="272"/><line x1="290" y1="282" x2="310" y2="272"/>
+            <line x1="340" y1="282" x2="360" y2="272"/><line x1="390" y1="282" x2="410" y2="272"/>
+            <line x1="440" y1="282" x2="460" y2="272"/><line x1="490" y1="282" x2="510" y2="272"/>
+          </g>
+          <!-- portal frame -->
+          <g stroke="#dde9f6" stroke-width="1.8" fill="none">
+            <rect x="150" y="40" width="18" height="232"/>
+            <rect x="404" y="40" width="18" height="232"/>
+            <rect x="150" y="26" width="272" height="22"/>
+          </g>
+          <!-- antenna panels -->
+          <g stroke="#ff9d4d" stroke-width="1.4">
+            <rect x="170" y="80"  width="14" height="34" fill="url(#hatchB)"/>
+            <rect x="170" y="150" width="14" height="34" fill="url(#hatchB)"/>
+            <rect x="388" y="80"  width="14" height="34" fill="url(#hatchB)"/>
+            <rect x="388" y="150" width="14" height="34" fill="url(#hatchB)"/>
+            <rect x="240" y="48"  width="34" height="12" fill="url(#hatchB)"/>
+            <rect x="300" y="48"  width="34" height="12" fill="url(#hatchB)"/>
+          </g>
+          <!-- read zone -->
+          <path d="M186 96 L 386 96 M196 166 L 380 166 M260 60 L 260 250 M315 60 L 315 250" stroke="rgba(255,157,77,.35)" stroke-width="1" stroke-dasharray="4 5"/>
+          <!-- truck -->
+          <g stroke="#dde9f6" stroke-width="1.6" fill="none">
+            <rect x="208" y="160" width="150" height="78" rx="3"/>
+            <path d="M358 238 v-58 h44 l22 28 v30"/>
+            <circle cx="246" cy="254" r="14"/><circle cx="316" cy="254" r="14"/><circle cx="398" cy="254" r="14"/>
+            <circle cx="246" cy="254" r="5" stroke="#9fb3cb"/><circle cx="316" cy="254" r="5" stroke="#9fb3cb"/><circle cx="398" cy="254" r="5" stroke="#9fb3cb"/>
+          </g>
+          <!-- crates on trailer -->
+          <g stroke="#9fb3cb" stroke-width="1.1" fill="none">
+            <rect x="220" y="186" width="38" height="38"/><rect x="262" y="186" width="38" height="38"/><rect x="304" y="186" width="38" height="38"/>
+            <circle cx="239" cy="205" r="3.5" stroke="#ff9d4d"/><circle cx="281" cy="205" r="3.5" stroke="#ff9d4d"/><circle cx="323" cy="205" r="3.5" stroke="#ff9d4d"/>
+          </g>
+          <!-- motion lines -->
+          <g stroke="#9fb3cb" stroke-width="1.2">
+            <line x1="160" y1="200" x2="196" y2="200"/><line x1="170" y1="216" x2="200" y2="216"/>
+          </g>
+          <!-- callouts -->
+          <g stroke="#9fb3cb" stroke-width="1" fill="none" stroke-dasharray="3 4">
+            <path d="M413 70 h87"/>
+            <path d="M281 208 c0 60 80 70 165 72"/>
+          </g>
+          <g font-size="10" fill="#dde9f6" letter-spacing="1.2">
+            <text x="436" y="60">ANTENNAS READ</text>
+            <text x="436" y="74" fill="#9fb3cb">EVERY TAG ABOARD</text>
+            <text x="446" y="296">TAGGED CRATES</text>
+            <text x="26" y="60">DRIVE THROUGH —</text>
+            <text x="26" y="74" fill="#9fb3cb">NO STOPPING</text>
+          </g>
+        </svg>
+        <div class="gbody">
+          <p>A fixed reader frame over each site entrance. A truck drives through at normal speed and
+          <strong>the whole load is received in one pass</strong>, checked automatically against the vendor’s
+          electronic packing list. Exit reads catch departures too. Misses are expected and handled by the
+          exception system — a discrepancy never holds up a driver.</p>
+          <div class="chips"><span>Hands-free receiving</span><span>Checks load vs. packing list</span><span>Exit detection</span><span>Zero training for drivers</span></div>
+          <p class="buy"><b>Where to buy</b>
+            <a href="https://www.atlasrfidstore.com/zebra-fx9600-rfid-reader-4-port/" target="_blank" rel="noopener">Zebra FX9600 reader — from $1,274</a> <span>· or</span>
+            <a href="https://www.atlasrfidstore.com/impinj-r700-RAIN-rfid-reader/" target="_blank" rel="noopener">Impinj R700 — $1,399</a><br>
+            <a href="https://www.atlasrfidstore.com/times-7-a6034-cp-rfid-antenna-fcc-etsi/" target="_blank" rel="noopener">Times-7 A6034 portal antennas — $455 ea.</a> <span>· ≈$4.5k–$11k per gate, installed</span>
+          </p>
+        </div>
+      </article>
+
+      <!-- C: smart label -->
+      <article class="gear reveal">
+        <div class="ghead"><span class="gno">ITEM C</span><h3>Smart label — RFID + QR</h3><span class="gqty">Consumable · one per serialized item</span></div>
+        <svg viewBox="0 0 560 330" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono,monospace" role="img" aria-label="Technical drawing of a RAIN RFID label with antenna pattern, chip and printed QR code">
+          <!-- label outline -->
+          <g stroke="#dde9f6" stroke-width="1.6" fill="none">
+            <rect x="110" y="78" width="340" height="170" rx="10"/>
+          </g>
+          <!-- antenna meander -->
+          <g stroke="#ff9d4d" stroke-width="1.6" fill="none">
+            <path d="M136 140 h28 v-22 h16 v40 h16 v-40 h16 v40 h16 v-40 h16 v22 h22"/>
+            <path d="M424 140 h-28 v-22 h-16 v40 h-16 v-40 h-16 v40 h-16 v-40 h-16 v22 h-22" transform="translate(-32,0)"/>
+            <rect x="266" y="132" width="16" height="16" fill="#ff9d4d"/>
+          </g>
+          <text x="262" y="118" font-size="9" fill="#9fb3cb" letter-spacing="1">CHIP</text>
+          <!-- QR -->
+          <g fill="#dde9f6">
+            <rect x="136" y="168" width="62" height="62" fill="none" stroke="#dde9f6" stroke-width="1.4"/>
+            <g transform="translate(141,173)">
+              <rect width="14" height="14" fill="none" stroke="#dde9f6" stroke-width="2.4"/>
+              <rect x="38" width="14" height="14" fill="none" stroke="#dde9f6" stroke-width="2.4"/>
+              <rect y="38" width="14" height="14" fill="none" stroke="#dde9f6" stroke-width="2.4"/>
+              <rect x="4" y="4" width="6" height="6"/><rect x="42" y="4" width="6" height="6"/><rect x="4" y="42" width="6" height="6"/>
+              <rect x="20" y="2" width="5" height="5"/><rect x="28" y="8" width="5" height="5"/><rect x="20" y="16" width="5" height="5"/>
+              <rect x="2" y="22" width="5" height="5"/><rect x="12" y="26" width="5" height="5"/><rect x="22" y="24" width="5" height="5"/>
+              <rect x="32" y="22" width="5" height="5"/><rect x="42" y="26" width="5" height="5"/><rect x="28" y="32" width="5" height="5"/>
+              <rect x="20" y="42" width="5" height="5"/><rect x="30" y="44" width="5" height="5"/><rect x="44" y="38" width="5" height="5"/>
+            </g>
+          </g>
+          <!-- serial text -->
+          <text x="218" y="196" font-size="13" fill="#dde9f6" letter-spacing="2">SRV-00133</text>
+          <text x="218" y="214" font-size="9.5" fill="#9fb3cb" letter-spacing="1">EPC-A4DBF3D91C37 · GRANITE RIDGE DC-1</text>
+          <!-- barcode-ish strokes -->
+          <g stroke="#dde9f6" stroke-width="2">
+            <line x1="218" y1="222" x2="218" y2="234"/><line x1="224" y1="222" x2="224" y2="234"/><line x1="233" y1="222" x2="233" y2="234"/>
+            <line x1="237" y1="222" x2="237" y2="234"/><line x1="246" y1="222" x2="246" y2="234"/><line x1="255" y1="222" x2="255" y2="234"/>
+            <line x1="259" y1="222" x2="259" y2="234"/><line x1="268" y1="222" x2="268" y2="234"/><line x1="277" y1="222" x2="277" y2="234"/>
+          </g>
+          <!-- radio arcs -->
+          <g stroke="#ff9d4d" stroke-width="1.3" fill="none">
+            <path d="M468 132 a26 26 0 0 1 0 36" />
+            <path d="M482 120 a44 44 0 0 1 0 60" />
+            <path d="M496 108 a62 62 0 0 1 0 84" />
+          </g>
+          <!-- callouts -->
+          <g stroke="#9fb3cb" stroke-width="1" fill="none" stroke-dasharray="3 4">
+            <path d="M274 132 v-72 h60"/>
+            <path d="M167 230 v40 h40"/>
+          </g>
+          <g font-size="10" fill="#dde9f6" letter-spacing="1.2">
+            <text x="340" y="56">RADIO ANTENNA — READS FROM</text>
+            <text x="340" y="70" fill="#9fb3cb">METERS AWAY, NO LINE OF SIGHT</text>
+            <text x="213" y="276">QR — ANY PHONE</text>
+            <text x="213" y="290" fill="#9fb3cb">CAMERA CAN READ IT</text>
+          </g>
+        </svg>
+        <div class="gbody">
+          <p>Every serialized item gets one, applied by the vendor before shipping. The radio half is what the
+          gate portal reads in bulk; the printed QR half is the <strong>human-readable fallback</strong> any phone
+          can scan. Special on-metal versions stick to servers, populated racks, and switchgear (plain RFID labels
+          fail on metal — this is a solved problem, but only if you buy the right label).</p>
+          <div class="chips"><span>Vendor-applied</span><span>On-metal variants</span><span>QR fallback printed on</span><span>Site printer for untagged arrivals</span></div>
+          <p class="buy"><b>Where to buy</b>
+            <a href="https://store.gototags.com/uhf-rfid-tags/uhf-rfid-labels/blank-uhf-rfid-labels/" target="_blank" rel="noopener">Standard 4"×2" labels — from $0.10</a> <span>· GoToTags, at 10k volume</span><br>
+            <a href="https://www.atlasrfidstore.com/hid-iq-om-150-m730-uhf-rfid-tag/" target="_blank" rel="noopener">HID IQ OM 150 on-metal — $0.51–$0.70</a> <span>·</span>
+            <a href="https://www.atlasrfidstore.com/zebra-zt231-rfid-printer/" target="_blank" rel="noopener">Zebra ZT231R printer/encoder — from $1,982</a>
+          </p>
+        </div>
+      </article>
+
+      <!-- D: smartphone -->
+      <article class="gear reveal">
+        <div class="ghead"><span class="gno">ITEM D</span><h3>Staff smartphone</h3><span class="gqty">Already owned · the fallback</span></div>
+        <svg viewBox="0 0 560 330" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono,monospace" role="img" aria-label="Technical drawing of a smartphone scanning the QR code on a crate label">
+          <!-- phone -->
+          <g stroke="#dde9f6" stroke-width="1.8" fill="none">
+            <rect x="120" y="44" width="128" height="246" rx="20"/>
+            <rect x="132" y="68" width="104" height="186" rx="4" stroke-width="1.2"/>
+            <line x1="166" y1="56" x2="202" y2="56"/>
+            <line x1="166" y1="272" x2="202" y2="272" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <!-- scan brackets on screen -->
+          <g stroke="#ff9d4d" stroke-width="2" fill="none">
+            <path d="M150 110 v-14 h14"/><path d="M218 96 h-14 m14 0 v14" transform="translate(0,0)"/>
+            <path d="M150 200 v14 h14"/><path d="M218 214 h-14 m14 0 v-14"/>
+          </g>
+          <!-- mini QR on screen -->
+          <g fill="#dde9f6" transform="translate(166,136)">
+            <rect width="10" height="10" fill="none" stroke="#dde9f6" stroke-width="2"/>
+            <rect x="26" width="10" height="10" fill="none" stroke="#dde9f6" stroke-width="2"/>
+            <rect y="26" width="10" height="10" fill="none" stroke="#dde9f6" stroke-width="2"/>
+            <rect x="3" y="3" width="4" height="4"/><rect x="29" y="3" width="4" height="4"/><rect x="3" y="29" width="4" height="4"/>
+            <rect x="15" y="6" width="4" height="4"/><rect x="20" y="14" width="4" height="4"/><rect x="12" y="18" width="4" height="4"/>
+            <rect x="28" y="20" width="4" height="4"/><rect x="16" y="28" width="4" height="4"/><rect x="26" y="30" width="4" height="4"/>
+          </g>
+          <text x="156" y="238" font-size="9" fill="#9fb3cb" letter-spacing="1">CONFIRMED ✓</text>
+          <!-- crate -->
+          <g stroke="#dde9f6" stroke-width="1.6" fill="none">
+            <path d="M330 150 l84 -28 84 28 v94 l-84 28 -84 -28 z"/>
+            <path d="M330 150 l84 28 84 -28 M414 178 v94"/>
+            <line x1="348" y1="162" x2="348" y2="250" stroke="#9fb3cb" stroke-width="1"/>
+            <line x1="372" y1="170" x2="372" y2="258" stroke="#9fb3cb" stroke-width="1"/>
+            <line x1="396" y1="178" x2="396" y2="266" stroke="#9fb3cb" stroke-width="1"/>
+          </g>
+          <!-- label on crate -->
+          <g stroke="#ff9d4d" stroke-width="1.4" fill="none">
+            <rect x="430" y="196" width="52" height="34" transform="skewY(-18) translate(0,160)"/>
+          </g>
+          <!-- scan beam -->
+          <path d="M252 150 L 436 290 M252 170 L 436 308" stroke="rgba(255,157,77,.45)" stroke-width="1" stroke-dasharray="4 5"/>
+          <!-- callouts -->
+          <g font-size="10" fill="#dde9f6" letter-spacing="1.2">
+            <text x="300" y="60">PUTAWAY · VERIFY · LOCATE</text>
+            <text x="300" y="74" fill="#9fb3cb">SAME RECORD AS EVERY OTHER DEVICE</text>
+            <text x="300" y="96" fill="#9fb3cb">CAMERA SCAN = 100% CONFIDENCE</text>
+          </g>
+        </svg>
+        <div class="gbody">
+          <p>Not a purchase — the phones in everyone’s pockets. When a pallet is broken apart and items go to
+          shelves, a quick QR scan records the put-away. When the system isn’t sure about something, a scan settles
+          it at 100% confidence. The phone produces <strong>the exact same kind of sighting</strong> as the portal
+          and the trackers — it’s the fallback, never the routine bulk path.</p>
+          <div class="chips"><span>Zero new hardware</span><span>Putaway assist</span><span>Verification scans</span><span>Find-an-item</span></div>
+          <p class="buy"><b>Where to buy</b>
+            <span>$0 — staff phones already work.</span> <span>Optional rugged pool:</span>
+            <a href="https://www.samsung.com/us/business/smartphones/galaxy-xcover7-pro/buy/galaxy-xcover7-pro-128gb-unlocked-sku-sm-g766uzkfn14/" target="_blank" rel="noopener">Samsung XCover7 Pro — $599.99</a> <span>· or</span>
+            <a href="https://www.motorola.com/us/en/p/phones/moto-g/moto-g-2025/pmipmhh39mq" target="_blank" rel="noopener">Moto G + rugged case — ≈$240–$265</a>
+          </p>
+        </div>
+      </article>
+    </div>
+
+    <div class="bom reveal">
+      <div class="bhead"><h3>What it costs</h3><span>Representative single site · 25,000 tagged items/yr · 200-tracker fleet · 2 gates</span></div>
+      <table>
+        <thead><tr><th>Line item</th><th>Budget range</th><th>Basis</th></tr></thead>
+        <tbody>
+          <tr><td>Reusable tracker fleet (200 units)</td><td class="r">$30k – $38k up front</td><td>Tive Solo Pro class at ≈$190/device; 10–15% yearly replacement after</td></tr>
+          <tr><td>Tracker platform + cellular service</td><td class="r">$19k – $36k / yr</td><td>$8–$15 per device per month; Samsara’s published $10/mo is the anchor</td></tr>
+          <tr><td>Gate portals, installed (×2)</td><td class="r">$9k – $22k up front</td><td>Reader + antennas + cabling + survey &amp; install labor, per gate</td></tr>
+          <tr><td>Smart labels (25,000 items/yr)</td><td class="r">$2.5k – $3.8k / yr</td><td>$0.10–$0.15 each at volume; direct converter quotes go lower</td></tr>
+          <tr><td>On-metal tags (≈3,000/yr)</td><td class="r">$1.8k – $5.7k / yr</td><td>$0.55–$0.90 printable labels; $1.25–$2.00 hard tags</td></tr>
+          <tr><td>Label printer/encoder stations (×2)</td><td class="r">$4k – $7k up front</td><td>Zebra ZT231R/ZT411R class, street pricing</td></tr>
+          <tr><td>Staff smartphones</td><td class="r">$0</td><td>Already in pockets; optional 5-phone rugged pool $1.2k–$3k</td></tr>
+          <tr><td>Cloud hosting + monitoring</td><td class="r">$1.2k – $4.8k / yr</td><td>Small production footprint, managed database included</td></tr>
+          <tr class="total"><td>Year one, all-in</td><td class="r">≈ $72k – $122k</td><td>Capex + first-year operating</td></tr>
+          <tr class="total"><td>Steady state</td><td class="r">≈ $28k – $56k / yr</td><td>Labels, subscriptions, attrition, cloud</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="roi reveal">
+      <article>
+        <h4>Return № 1 — Claims that stick</h4>
+        <p>A damage claim backed by a timestamped, GPS-located G-force reading gets paid; a hunch doesn’t.
+        <strong>One recovered claim on a single damaged server rack can exceed a year of tracker subscriptions.</strong></p>
+      </article>
+      <article>
+        <h4>Return № 2 — Hours &amp; re-orders that vanish</h4>
+        <p>No more crews walking the yard hunting crates, and no more re-ordering parts the company already owns.
+        Time-to-locate drops from hours to <strong>one search box</strong>.</p>
+      </article>
+      <article>
+        <h4>Return № 3 — Slips caught early</h4>
+        <p>The expensive delay is the one you learn about last. Every day of warning is a day to re-sequence crews,
+        expedite a replacement, or re-plan. <strong>One critical activity kept on time can repay the entire system.</strong></p>
+      </article>
+    </div>
+    <p class="bp-note reveal">Street prices checked 2026-06-12 · all figures are estimate ranges — final pricing requires vendor quotes</p>
+  </div>
+</section>
+
+<!-- ================= FLEET HEALTH ================= -->
+<section id="fleet">
+  <div class="wrap reveal">
+    <p class="kicker">Section 07 — Fleet health</p>
+    <h2>Watching the watchers</h2>
+    <p class="lede">A tracking system is only as honest as its devices. The <strong>Devices tab</strong> is the
+    registry of the whole capture fleet — every tracker and the gate portal — with the three things that matter:
+    <strong>battery, last seen, and who it’s assigned to.</strong></p>
+
+    <div class="ctrl-grid">
+      <figure class="shot reveal">
+        <span class="stamp">TRK-0007 — gone quiet</span>
+        <div class="frame"><div class="bar"><i></i><i></i><i></i><span class="url">sitetrace / devices</span></div>
+        <img src="assets/devices.png" width="1440" height="900" loading="lazy" alt="Device registry listing the gate portal and dozens of trackers with status, battery percentage, last-seen time and current assignment"></div>
+        <figcaption class="figcap"><b>Fig. 07-A</b> <span>The device registry: 61 devices — the gate portal plus the tracker pool — each with live battery, last-seen and assignment.</span></figcaption>
+      </figure>
+      <ul class="legend reveal">
+        <li><b><i>—</i> Lifecycle pool</b>Trackers cycle: <em>available → assigned → in transit → returned</em> to the charger, then out again on the next pallet. The registry shows where every unit sits in that loop.</li>
+        <li><b><i>—</i> Battery watch</b>Every ping reports charge. Devices below 15% surface automatically, before they die in the field.</li>
+        <li><b><i>—</i> Silence is an alarm</b>A tracker that misses its check-in window — like TRK-0007 above — raises an alert. A quiet device might mean a dead battery, a stripped pallet, or a crate that left the property.</li>
+        <li><b><i>—</i> The portal too</b>PORTAL-GATE-1 reports its own health the same way. If the gate reader ever goes dark, you know before the next truck arrives — not after.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PEOPLE ================= -->
+<section id="people">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">Section 08 — The people</p>
+      <h2>Software does the typing.<br>People do the judging.</h2>
+    </div>
+    <div class="people-grid">
+      <div class="prose reveal">
+        <p>Notice what’s missing from this manual: data entry. Nobody fills in spreadsheets, nobody logs handoffs,
+        nobody counts boxes off a truck. The devices do the bookkeeping.</p>
+        <p>What people do is <strong>work the exception queue</strong>: the short list of judgment calls the system
+        won’t make alone. <em>“I’m 76% sure this busway arrived — can someone confirm?” “This tracker went quiet —
+        can someone check the pallet?”</em> Each card is a two-minute job with a resolve button, designed for a
+        phone in the yard, and often cleared by simply scanning the item in question.</p>
+        <p>The same phone-first screens cover inspections (guided pass/fail with photos) and the scan page’s four
+        verbs: <strong>verify, receive, put away, locate.</strong> If the day ever goes sideways, everything the
+        devices do, a person with a phone can do manually — the system treats both identically.</p>
+      </div>
+      <div class="reveal">
+        <div class="phone"><div class="notch"></div>
+        <img src="assets/exceptions-phone.png" width="390" height="844" loading="lazy" alt="Exceptions queue on a phone, showing verification cards with assign, resolve and dismiss actions"></div>
+        <p class="phone-cap">The exception queue — the human to-do list</p>
+      </div>
+      <div class="reveal">
+        <div class="phone"><div class="notch"></div>
+        <img src="assets/scan-phone.png" width="390" height="844" loading="lazy" alt="Scan page on a phone with four actions: verify, receive, putaway/move and locate"></div>
+        <p class="phone-cap">The scan page — four verbs, one tap each</p>
+      </div>
+    </div>
+    <p class="quiet-quote reveal">A person scanning a phone is the exception — never the routine.</p>
+  </div>
+</section>
+
+<!-- ================= RUN ================= -->
+<section id="run" style="padding-top:0">
+  <div class="wrap reveal">
+    <p class="kicker">Section 09 — See it run</p>
+    <h2>One command. Zero hardware.</h2>
+    <p class="lede">Everything in this manual runs end-to-end on a laptop. Built-in simulators play the part of
+    ships, trucks, trackers, and the gate portal — with realistic delays, drops, and missed reads — so every screen
+    above is the <strong>real application doing real work</strong> on simulated freight.</p>
+
+    <div class="runbox">
+      <div class="term reveal">
+        <div class="bar"><i></i><i></i><i></i></div>
+        <pre><span class="c"># start database, app, simulators &amp; demo data</span>
+<span class="o">$</span> docker compose up
+
+<span class="c"># then open</span>
+<span class="o">→</span> http://localhost:3000
+
+<span class="c"># port already taken? pick another</span>
+<span class="o">$</span> SITETRACE_PORT=3050 docker compose up</pre>
+      </div>
+      <div class="reveal">
+        <ul class="logins">
+          <li><code>coordinator@…</code><span>Runs inbound — shipments, ASNs, the world map</span></li>
+          <li><code>yard@…</code><span>Receiving &amp; the yard — scans, exceptions, inspections</span></li>
+          <li><code>pm@…</code><span>Schedule &amp; risk — activities, float, what-if</span></li>
+          <li><code>exec@…</code><span>The big picture — KPIs &amp; reports</span></li>
+          <li><code>admin@…</code><span>Devices, users, zones &amp; thresholds</span></li>
+        </ul>
+        <p class="pw">All addresses end <b>@sitetrace.demo</b> · password <b>sitetrace-demo</b></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>SiteTrace — Field Manual · Rev 1.1</span>
+    <span>Every screenshot: the live application on simulated demo data</span>
+    <span>Granite Ridge DC&#8209;1 · 2026</span>
+  </div>
+</footer>
+
+<script>
+// scroll reveals
+const io=new IntersectionObserver(es=>{for(const e of es){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+// active nav link
+const links=[...document.querySelectorAll('.topnav a')];
+const secs=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+const nio=new IntersectionObserver(es=>{for(const e of es){if(e.isIntersecting){links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id))}}},{rootMargin:'-30% 0px -60% 0px'});
+secs.forEach(s=>nio.observe(s));
+</script>
+</body>
+</html>
