@@ -307,24 +307,6 @@ em{font-style:italic}
   font-size:clamp(23px,3vw,34px);line-height:1.12;max-width:34ch;
 }
 
-/* ---------- run it ---------- */
-#run .runbox{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;margin-top:54px;align-items:start}
-.term{
-  background:var(--ink);color:#e8e4d8;border-radius:10px;overflow:hidden;
-  box-shadow:0 24px 48px -16px rgba(28,36,51,.45);
-  font-family:var(--mono);font-size:14px;
-}
-.term .bar{display:flex;gap:7px;padding:11px 14px;background:rgba(255,255,255,.07)}
-.term .bar i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25)}
-.term pre{padding:22px 24px 26px;line-height:1.9;overflow-x:auto}
-.term .c{color:#8d97ab}
-.term .o{color:var(--orange-soft)}
-.logins{border-top:2px solid var(--ink)}
-.logins li{list-style:none;display:grid;grid-template-columns:150px 1fr;gap:18px;padding:13px 0;border-bottom:1px dashed var(--line);font-size:15px;color:var(--ink-soft)}
-.logins li code{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-weight:500}
-.logins+.pw{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:14px}
-.logins+.pw b{color:var(--orange-text)}
-
 /* ---------- footer ---------- */
 footer{
   border-top:1px solid var(--line);padding:34px 0 44px;
@@ -344,7 +326,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 36px;justify-content:space-bet
 @media (max-width:980px){
   .cards3{grid-template-columns:1fr}
   .pcard{margin-top:14px}
-  .ctrl-grid,#run .runbox,.roi{grid-template-columns:1fr}
+  .ctrl-grid,.roi{grid-template-columns:1fr}
   .gear-grid{grid-template-columns:1fr}
   .people-grid{grid-template-columns:1fr 1fr;gap:30px}
   .people-grid .prose{grid-column:1/-1}
@@ -1168,29 +1150,6 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 36px;justify-content:space-bet
     ships, trucks, trackers, and the gate portal — with realistic delays, drops, and missed reads — so every screen
     above is the <strong>real application doing real work</strong> on simulated freight.</p>
 
-    <div class="runbox">
-      <div class="term reveal">
-        <div class="bar"><i></i><i></i><i></i></div>
-        <pre><span class="c"># start database, app, simulators &amp; demo data</span>
-<span class="o">$</span> docker compose up
-
-<span class="c"># then open</span>
-<span class="o">→</span> http://localhost:3000
-
-<span class="c"># port already taken? pick another</span>
-<span class="o">$</span> SITETRACE_PORT=3050 docker compose up</pre>
-      </div>
-      <div class="reveal">
-        <ul class="logins">
-          <li><code>coordinator@…</code><span>Runs inbound — shipments, ASNs, the world map</span></li>
-          <li><code>yard@…</code><span>Receiving &amp; the yard — scans, exceptions, inspections</span></li>
-          <li><code>pm@…</code><span>Schedule &amp; risk — activities, float, what-if</span></li>
-          <li><code>exec@…</code><span>The big picture — KPIs &amp; reports</span></li>
-          <li><code>admin@…</code><span>Devices, users, zones &amp; thresholds</span></li>
-        </ul>
-        <p class="pw">All addresses end <b>@sitetrace.demo</b> · password <b>sitetrace-demo</b></p>
-      </div>
-    </div>
   </div>
 </section>
 
